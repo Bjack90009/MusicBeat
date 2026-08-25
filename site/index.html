@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#06111b">
+  <meta name="description" content="新活动：音乐节拍 — 5 秒节拍点击挑战">
+  <title>新活动：音乐节拍</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="title-bar">
+      <span class="eyebrow">NEW ACTIVITY</span>
+      <h1>新活动：音乐节拍</h1>
+      <p>跟随缩圈，在正确时机点击节拍</p>
+    </header>
+
+    <section class="game-layout" aria-label="音乐节拍游戏">
+      <aside class="panel score-panel" aria-label="本局计分表">
+        <div class="panel-heading"><span>本局记录</span><i>LIVE</i></div>
+        <div class="score-main"><small>得分</small><strong id="score">0</strong></div>
+        <div class="score-pairs">
+          <span><small>连击</small><strong id="combo">0</strong></span>
+          <span><small>最高连击</small><strong id="max-combo">0</strong></span>
+          <span><small>命中数</small><strong id="hits">0</strong></span>
+          <span><small>MISS</small><strong id="miss-count">0</strong></span>
+        </div>
+        <div class="grade-list">
+          <span style="--grade:#55e7ff"><i>PERFECT</i><b id="perfect-count">0</b></span>
+          <span style="--grade:#91ed65"><i>GREAT</i><b id="great-count">0</b></span>
+          <span style="--grade:#ffd85a"><i>GOOD</i><b id="good-count">0</b></span>
+          <span style="--grade:#ff7191"><i>EARLY</i><b id="early-count">0</b></span>
+        </div>
+      </aside>
+
+      <section class="play-column">
+        <div class="timer-wrap" aria-live="polite">
+          <small>剩余时间</small>
+          <strong id="timer">5.00</strong><span>秒</span>
+        </div>
+        <div id="playfield" class="playfield" aria-label="节拍可点击区域">
+          <div class="field-grid" aria-hidden="true"></div>
+          <div id="field-message" class="field-message">
+            <strong>准备好了吗？</strong>
+            <span>点击下方按钮开始 5 秒挑战</span>
+          </div>
+        </div>
+        <button id="start-button" class="primary-button" type="button">开始挑战</button>
+        <p id="network-status" class="network-status" aria-live="polite"></p>
+      </section>
+
+      <aside class="panel leaderboard-panel" aria-label="排行榜">
+        <div class="panel-heading"><span>排行榜</span><i>TOP 10</i></div>
+        <ol id="leaderboard" class="leaderboard-list">
+          <li class="leaderboard-empty">排行榜加载中…</li>
+        </ol>
+      </aside>
+    </section>
+  </main>
+
+  <div id="result-modal" class="modal" hidden>
+    <div class="modal-backdrop"></div>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <span id="modal-kicker" class="modal-kicker">本局完成</span>
+      <h2 id="modal-title">挑战完成</h2>
+      <div class="result-rank"><span id="rank-label">本局得分</span><strong id="result-rank">—</strong></div>
+      <div class="result-score"><small>本局得分</small><b id="result-score">0</b></div>
+      <div id="name-entry" class="name-entry" hidden>
+        <label for="player-name">输入你的名称</label>
+        <input id="player-name" maxlength="16" autocomplete="nickname" placeholder="1–16 个字符">
+        <p id="name-error" class="form-error" aria-live="polite"></p>
+      </div>
+      <div class="modal-actions">
+        <button id="confirm-rank" class="primary-button compact" type="button" hidden>确认上榜</button>
+        <button id="decline-rank" class="text-button" type="button" hidden>不上榜</button>
+        <button id="close-result" class="primary-button compact" type="button">再来一次</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="./game-config.js"></script>
+  <script src="./runtime-config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

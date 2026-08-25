@@ -1,0 +1,14 @@
+{
+  "name": "music-beat-release",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:api": "wrangler dev --config worker/wrangler.jsonc --port 8787",
+    "db:local": "wrangler d1 migrations apply music-beat-db --local --config worker/wrangler.jsonc",
+    "db:remote": "wrangler d1 migrations apply music-beat-db --remote --config worker/wrangler.jsonc",
+    "deploy:api": "wrangler deploy --config worker/wrangler.jsonc"
+  },
+  "devDependencies": {
+    "wrangler": "^4.125.0"
+  }
+}
