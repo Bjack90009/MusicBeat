@@ -1,5 +1,5 @@
 window.GAME_CONFIG = Object.freeze({
-  version: "2026-08-25-r3",
+  version: "2026-08-25-r4",
   durationMs: 5000,
   maxNotes: 5,
   minSpawnIntervalMs: 600,
@@ -10,6 +10,9 @@ window.GAME_CONFIG = Object.freeze({
   maxOuterSize: 240,
   targetSize: 60,
   noteLifetimeMs: 800,
+  bonusTriggerCombo: 5,
+  bonusNoteCount: 5,
+  bonusSpawnIntervalMs: 200,
   seed: 20260825,
   judgments: [
     { id: "perfect", label: "PERFECT", maxRemainingRatio: 0.20, multiplier: 2, color: "#55e7ff" },

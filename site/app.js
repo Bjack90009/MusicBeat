@@ -2,6 +2,7 @@
   "use strict";
 
   const config = window.GAME_CONFIG;
+  const rules = window.GAME_RULES;
   const runtime = window.RUNTIME_CONFIG || {};
   const apiBase = String(runtime.apiBaseUrl || (location.hostname === "127.0.0.1" || location.hostname === "localhost" ? "http://127.0.0.1:8787" : "")).replace(/\/$/, "");
   const formatScore = new Intl.NumberFormat("zh-CN");
@@ -11,6 +12,7 @@
     fieldMessage: document.querySelector("#field-message"),
     start: document.querySelector("#start-button"),
     timer: document.querySelector("#timer"),
+    perfectCombo: document.querySelector("#perfect-combo"),
     score: document.querySelector("#score"),
     combo: document.querySelector("#combo"),
     maxCombo: document.querySelector("#max-combo"),
@@ -36,8 +38,15 @@
     phase: "idle",
     sessionId: null,
     startedAt: 0,
+    endsAt: 0,
     nextSpawnAt: 0,
-    spawnCount: 0,
+    autoSpawnCount: 0,
+    totalSpawnCount: 0,
+    perfectStreak: 0,
+    rewardTriggered: false,
+    bonusRemaining: 0,
+    nextBonusAt: 0,
+    bonusMode: false,
     noteSequence: 0,
     activeNotes: new Map(),
     animationFrame: 0,
@@ -137,7 +146,13 @@
     state.maxCombo = 0;
     state.hits = 0;
     state.miss = 0;
-    state.spawnCount = 0;
+    state.autoSpawnCount = 0;
+    state.totalSpawnCount = 0;
+    state.perfectStreak = 0;
+    state.rewardTriggered = false;
+    state.bonusRemaining = 0;
+    state.nextBonusAt = 0;
+    state.bonusMode = false;
     state.noteSequence = 0;
     state.grades = Object.fromEntries(gradeIds.map((id) => [id, 0]));
     state.qualitySpawned = Object.fromEntries(config.qualities.map((q) => [q.id, 0]));
@@ -155,6 +170,9 @@
     els.maxCombo.textContent = state.maxCombo;
     els.hits.textContent = state.hits;
     els.miss.textContent = state.miss;
+    els.perfectCombo.textContent = state.bonusMode ? "BONUS" : `PERFECT COMBO ×${state.perfectStreak}`;
+    els.perfectCombo.classList.toggle("bonus-mode", state.bonusMode);
+    els.perfectCombo.classList.toggle("active", !state.bonusMode && state.perfectStreak > 0);
     gradeIds.forEach((id) => { document.querySelector(`#${id}-count`).textContent = state.grades[id]; });
   }
 
@@ -168,20 +186,19 @@
     return config.qualities[0];
   }
 
-  function spawnNote(now) {
-    if (state.spawnCount >= config.maxNotes) return;
+  function spawnNote(now, origin = "auto") {
+    const position = rules.selectSafePosition(config, [...state.activeNotes.values()], state.rng);
+    if (!position) return false;
     const quality = chooseQuality();
     const size = randomBetween(config.minOuterSize, config.maxOuterSize);
-    const radius = size / 2;
-    const x = randomBetween(radius, config.playAreaWidth - radius);
-    const y = randomBetween(radius, config.playAreaHeight - radius);
+    const { x, y } = position;
     const id = `${state.sessionId}-${++state.noteSequence}`;
-    const note = { id, sequence: state.noteSequence, bornAt: now, expiresAt: now + config.noteLifetimeMs, quality, size, x, y, resolved: false };
+    const note = { id, sequence: state.noteSequence, origin, bornAt: now, expiresAt: now + config.noteLifetimeMs, quality, size, x, y, resolved: false };
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "beat-note";
+    button.className = `beat-note${origin === "bonus" ? " bonus-note" : ""}`;
     button.dataset.noteId = id;
-    button.setAttribute("aria-label", `${quality.label}色品质第 ${note.sequence} 拍`);
+    button.setAttribute("aria-label", `${origin === "bonus" ? "奖励" : ""}${quality.label}色品质第 ${note.sequence} 拍`);
     button.style.cssText = [
       `left:${x / config.playAreaWidth * 100}%`,
       `top:${y / config.playAreaHeight * 100}%`,
@@ -191,13 +208,15 @@
       `--lifetime:${config.noteLifetimeMs}ms`,
       `--quality:${quality.color}`
     ].join(";");
-    button.innerHTML = `<span class="outer-ring"></span><span class="guide-ring"></span><span class="target-ring"><i class="note-core"></i></span><span class="note-label">${quality.label} · ${note.sequence}</span>`;
+    button.innerHTML = `<span class="outer-ring"></span><span class="guide-ring"></span><span class="target-ring"><i class="note-core"></i></span><span class="note-label">${origin === "bonus" ? "奖 · " : ""}${quality.label} · ${note.sequence}</span>`;
     button.addEventListener("pointerdown", (event) => handleHit(note, event));
     note.element = button;
     state.activeNotes.set(id, note);
-    state.spawnCount += 1;
+    if (origin === "auto") state.autoSpawnCount += 1;
+    state.totalSpawnCount += 1;
     state.qualitySpawned[quality.id] += 1;
     els.playfield.prepend(button);
+    return true;
   }
 
   function getJudgment(remainingRatio) {
@@ -221,9 +240,13 @@
     state.timingSamples.push(Number(remainingRatio.toFixed(4)));
     const pointerType = event.pointerType || "unknown";
     state.inputMethods[pointerType] = (state.inputMethods[pointerType] || 0) + 1;
+    state.perfectStreak = rules.nextPerfectStreak(state.perfectStreak, tier.id);
+    if (rules.shouldTriggerBonus(state.perfectStreak, state.rewardTriggered, config.bonusTriggerCombo)) {
+      triggerBonus(now);
+    }
     renderStats();
     playTone(tier.id);
-    showFeedback(note, tier, points);
+    showFeedback(note, tier, points, state.perfectStreak);
     note.element.classList.add("hit");
     setTimeout(() => removeNote(note), 210);
   }
@@ -233,16 +256,17 @@
     note.resolved = true;
     state.miss += 1;
     state.combo = 0;
+    state.perfectStreak = 0;
     renderStats();
     showFeedback(note, { id: "miss", label: "MISS", color: "#8a94a0" }, 0);
     removeNote(note);
   }
 
-  function showFeedback(note, tier, points) {
+  function showFeedback(note, tier, points, perfectStreak = 0) {
     const feedback = document.createElement("div");
     feedback.className = "hit-feedback";
     feedback.style.cssText = `left:${note.x / config.playAreaWidth * 100}%;top:${note.y / config.playAreaHeight * 100}%;--grade:${tier.color}`;
-    feedback.innerHTML = `<strong>${tier.label}</strong><small>${points ? `+${formatScore.format(points)}` : "COMBO BREAK"}</small>`;
+    feedback.innerHTML = `<strong>${tier.label}</strong><small>${points ? `+${formatScore.format(points)}` : "COMBO BREAK"}</small>${tier.id === "perfect" ? `<em>COMBO ×${perfectStreak}</em>` : ""}`;
     els.playfield.append(feedback);
     setTimeout(() => feedback.remove(), 720);
   }
@@ -255,7 +279,33 @@
   function clearNotes() {
     for (const note of state.activeNotes.values()) note.element?.remove();
     state.activeNotes.clear();
-    els.playfield.querySelectorAll(".hit-feedback").forEach((node) => node.remove());
+    els.playfield.querySelectorAll(".hit-feedback, .bonus-announcement").forEach((node) => node.remove());
+  }
+
+  function setBonusMode(active) {
+    if (state.bonusMode === active) return;
+    state.bonusMode = active;
+    renderStats();
+    if (active) {
+      els.perfectCombo.classList.remove("bonus-enter");
+      void els.perfectCombo.offsetWidth;
+      els.perfectCombo.classList.add("bonus-enter");
+    } else {
+      els.perfectCombo.classList.remove("bonus-enter");
+    }
+  }
+
+  function triggerBonus(now) {
+    state.rewardTriggered = true;
+    state.bonusRemaining = config.bonusNoteCount;
+    state.nextBonusAt = now;
+    state.endsAt = Math.max(state.endsAt, now + rules.bonusWindowMs(config.bonusNoteCount, config.bonusSpawnIntervalMs, config.noteLifetimeMs));
+    setBonusMode(true);
+    const announcement = document.createElement("div");
+    announcement.className = "bonus-announcement";
+    announcement.innerHTML = "<small>PERFECT ×5</small><strong>BONUS START</strong>";
+    els.playfield.append(announcement);
+    setTimeout(() => announcement.remove(), 900);
   }
 
   let audioContext;
@@ -282,17 +332,32 @@
   function tick(now) {
     if (state.phase !== "playing") return;
     const elapsed = now - state.startedAt;
-    const remaining = Math.max(0, config.durationMs - elapsed);
+    const remaining = Math.max(0, state.endsAt - now);
     els.timer.textContent = (remaining / 1000).toFixed(2);
 
-    while (now >= state.nextSpawnAt && state.spawnCount < config.maxNotes && elapsed < config.durationMs) {
-      spawnNote(now);
-      state.nextSpawnAt += randomBetween(config.minSpawnIntervalMs, config.maxSpawnIntervalMs);
-    }
     for (const note of [...state.activeNotes.values()]) {
       if (now >= note.expiresAt) registerMiss(note);
     }
-    if (remaining <= 0) {
+
+    if (state.bonusRemaining > 0 && now >= state.nextBonusAt) {
+      if (spawnNote(now, "bonus")) {
+        state.bonusRemaining -= 1;
+        state.nextBonusAt = now + config.bonusSpawnIntervalMs;
+        if (state.bonusRemaining === 0) setBonusMode(false);
+      } else {
+        state.nextBonusAt = now + 16;
+      }
+    }
+
+    while (now >= state.nextSpawnAt && state.autoSpawnCount < config.maxNotes && elapsed < config.durationMs) {
+      if (!spawnNote(now, "auto")) {
+        state.nextSpawnAt = now + 50;
+        break;
+      }
+      state.nextSpawnAt += randomBetween(config.minSpawnIntervalMs, config.maxSpawnIntervalMs);
+    }
+
+    if (remaining <= 0 && state.bonusRemaining === 0) {
       finishGame();
       return;
     }
@@ -307,6 +372,7 @@
     state.sessionId = createId();
     state.rng = seededRandom((config.seed ^ Date.now()) >>> 0);
     state.startedAt = performance.now();
+    state.endsAt = state.startedAt + config.durationMs;
     state.nextSpawnAt = state.startedAt;
     els.timer.textContent = (config.durationMs / 1000).toFixed(2);
     els.fieldMessage.hidden = true;
@@ -328,7 +394,7 @@
       comboMax: state.maxCombo,
       hits: state.hits,
       misses: state.miss,
-      spawned: state.spawnCount,
+      spawned: state.totalSpawnCount,
       grades: state.grades,
       qualitySpawned: state.qualitySpawned,
       qualityHit: state.qualityHit,
