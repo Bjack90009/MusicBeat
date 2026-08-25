@@ -186,7 +186,7 @@
       `left:${x / config.playAreaWidth * 100}%`,
       `top:${y / config.playAreaHeight * 100}%`,
       `--size:${size / config.playAreaWidth * 100}%`,
-      `--target:${config.targetSize / config.playAreaWidth * 100}%`,
+      `--target:${config.targetSize / size * 100}%`,
       `--target-scale:${config.targetSize / size}`,
       `--lifetime:${config.noteLifetimeMs}ms`,
       `--quality:${quality.color}`
