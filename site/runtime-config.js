@@ -1,3 +1,3 @@
 window.RUNTIME_CONFIG = Object.freeze({
-  apiBaseUrl: ""
+  apiBaseUrl: "https://music-beat-api.music-beat.workers.dev"
 });

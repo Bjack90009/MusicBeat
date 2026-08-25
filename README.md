@@ -2,6 +2,12 @@
 
 面向网页和手机玩家的独立发布版。页面只保留标题、计分表、操作区域、开始/再来一次按钮和排行榜；所有玩法数值继续在本地调试器中维护。
 
+## 发布地址
+
+- GitHub 仓库：https://github.com/Bjack90009/MusicBeat
+- GitHub Pages（启用后）：https://bjack90009.github.io/MusicBeat/
+- 排行榜 API：https://music-beat-api.music-beat.workers.dev
+
 ## 当前固化数值
 
 - 对局 5 秒，最多 20 拍

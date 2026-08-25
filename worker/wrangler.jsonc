@@ -13,7 +13,7 @@
     {
       "binding": "DB",
       "database_name": "music-beat-db",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "fb17a8cb-2d81-4b0b-81d2-6e52bff5969a",
       "migrations_dir": "migrations"
     }
   ]
