@@ -168,7 +168,7 @@
   function renderStats() {
     state.score = rules.scoreWithMovingBonus(state.rawScore, state.specialHits, config.movingNoteBonusPerHit);
     els.score.textContent = formatScore.format(state.score);
-    els.specialBonus.textContent = `×${formatBonusRate(rules.movingBonusRate(state.specialHits, config.movingNoteBonusPerHit))}`;
+    els.specialBonus.textContent = formatBonusPercent(rules.movingBonusRate(state.specialHits, config.movingNoteBonusPerHit));
     els.combo.textContent = state.combo;
     els.maxCombo.textContent = state.maxCombo;
     els.hits.textContent = state.hits;
@@ -181,6 +181,10 @@
 
   function formatBonusRate(value) {
     return Number(value.toFixed(2)).toString();
+  }
+
+  function formatBonusPercent(value) {
+    return `+${formatBonusRate(value * 100)}%`;
   }
 
   function chooseQuality() {

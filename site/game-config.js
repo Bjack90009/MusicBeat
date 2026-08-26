@@ -1,5 +1,5 @@
 window.GAME_CONFIG = Object.freeze({
-  version: "2026-08-26-r7",
+  version: "2026-08-26-r8",
   durationMs: 5000,
   maxNotes: 5,
   minSpawnIntervalMs: 600,
