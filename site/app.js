@@ -6,6 +6,7 @@
   const runtime = window.RUNTIME_CONFIG || {};
   const apiBase = String(runtime.apiBaseUrl || (location.hostname === "127.0.0.1" || location.hostname === "localhost" ? "http://127.0.0.1:8787" : "")).replace(/\/$/, "");
   const savedPlayerNameKey = "music-beat-player-name";
+  const operationHint = "普通节拍看准缩圈点击得分；点击捣乱的粉丝获得得分加成。";
   const formatScore = new Intl.NumberFormat("zh-CN");
   const gradeIds = ["perfect", "great", "good", "early"];
   const els = {
@@ -564,7 +565,7 @@
       els.fieldMessageDetail.textContent = "暂时还没有上榜记录";
       return;
     }
-    els.fieldMessageDetail.textContent = "";
+    els.fieldMessageDetail.textContent = operationHint;
     els.fieldTopThree.hidden = false;
     topThree.forEach((entry) => {
       const item = document.createElement("li");

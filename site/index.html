@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#06111b">
   <meta name="description" content="新活动：音乐节拍 — 5 秒节拍点击挑战">
   <title>新活动：音乐节拍</title>
-  <link rel="stylesheet" href="./styles.css?v=20260826-r11">
+  <link rel="stylesheet" href="./styles.css?v=20260826-r12">
 </head>
 <body>
   <main class="app-shell">
@@ -37,8 +37,7 @@
       <section class="play-column">
         <div class="play-hud" aria-live="polite">
           <div class="score-hud">
-            <small>总得分</small>
-            <strong id="score">0</strong>
+            <div class="score-main-hud"><small>总得分</small><strong id="score">0</strong></div>
             <span class="bonus-hud"><i>PICK ME 加成</i><b id="special-bonus">+0%</b></span>
           </div>
           <div class="timer-wrap">
@@ -50,8 +49,8 @@
           <div class="field-grid" aria-hidden="true"></div>
           <div id="field-message" class="field-message">
             <strong id="field-message-title">准备好了吗？</strong>
-            <span id="field-message-detail">普通节拍看准缩圈点击得分；点击捣乱的粉丝获得得分加成。</span>
             <ol id="field-top-three" class="field-top-three" hidden></ol>
+            <span id="field-message-detail">普通节拍看准缩圈点击得分；点击捣乱的粉丝获得得分加成。</span>
           </div>
         </div>
         <button id="start-button" class="primary-button" type="button">开始挑战</button>
@@ -87,9 +86,9 @@
     </section>
   </div>
 
-  <script src="./game-config.js?v=20260826-r11"></script>
-  <script src="./game-rules.js?v=20260826-r11"></script>
+  <script src="./game-config.js?v=20260826-r12"></script>
+  <script src="./game-rules.js?v=20260826-r12"></script>
   <script src="./runtime-config.js"></script>
-  <script src="./app.js?v=20260826-r11"></script>
+  <script src="./app.js?v=20260826-r12"></script>
 </body>
 </html>
