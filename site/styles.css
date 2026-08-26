@@ -80,15 +80,15 @@ button { touch-action: manipulation; }
 .note-label { position: absolute; inset: 0; display: grid; place-content: center; padding-top: 40%; color: white; font: 800 clamp(8px, 1.3vw, 12px) ui-monospace, monospace; text-shadow: 0 2px 6px #000; pointer-events: none; }
 .beat-note.hit { pointer-events: none; animation: note-hit .2s ease-out forwards; }
 .moving-note { position: absolute; z-index: 5; width: var(--moving-size); height: var(--moving-size); padding: 0; border: 0; border-radius: 50%; background: none; color: white; cursor: pointer; transform: translate(-50%, -50%); touch-action: manipulation; }
-.moving-ring { position: absolute; inset: 0; display: grid; place-items: center; border: clamp(2px, .45vw, 4px) solid white; border-radius: 50%; background: rgba(255, 255, 255, .06); box-shadow: 0 0 9px rgba(255,255,255,.95), 0 0 25px rgba(191,229,255,.42), inset 0 0 16px rgba(255,255,255,.18); animation: moving-glow .55s ease-in-out infinite alternate; }
-.moving-ring i { width: 18%; aspect-ratio: 1; border-radius: 50%; background: white; box-shadow: 0 0 7px white, 0 0 16px #bde9ff; }
-.moving-note small { position: absolute; left: 50%; top: calc(100% + 5px); transform: translateX(-50%); color: white; font: 800 clamp(7px, 1vw, 10px)/1 ui-monospace, monospace; letter-spacing: .08em; text-shadow: 0 1px 4px #000, 0 0 8px #9bddff; pointer-events: none; }
+.moving-ring { position: absolute; inset: 0; display: grid; place-items: center; border: clamp(3px, .55vw, 5px) solid transparent; border-radius: 50%; background: linear-gradient(rgba(8,16,25,.9), rgba(8,16,25,.9)) padding-box, conic-gradient(#ff4d6d, #ffcf4a, #68e875, #55e7ff, #738cff, #c875ff, #ff4d9d, #ff4d6d) border-box; box-shadow: 0 0 10px rgba(255,255,255,.85), 0 0 28px rgba(127,220,255,.48), inset 0 0 16px rgba(255,255,255,.18); animation: moving-glow .55s ease-in-out infinite alternate, rainbow-hue 1.4s linear infinite; }
+.moving-ring i { width: 20%; aspect-ratio: 1; border-radius: 50%; background: conic-gradient(#ff4d6d, #ffcf4a, #68e875, #55e7ff, #738cff, #c875ff, #ff4d9d, #ff4d6d); box-shadow: 0 0 8px white, 0 0 18px #bde9ff; }
+.moving-note small { position: absolute; left: 50%; top: calc(100% + 5px); transform: translateX(-50%); color: transparent; background: linear-gradient(90deg, #ff6b83, #ffe16b, #74ef84, #62eaff, #9c8cff, #ef78ff); background-clip: text; -webkit-background-clip: text; font: 800 clamp(7px, 1vw, 10px)/1 ui-monospace, monospace; letter-spacing: .08em; text-shadow: 0 1px 4px #000; pointer-events: none; }
 .moving-note.is-hit { animation: moving-hit .18s ease-out; }
 .hit-feedback { position: absolute; transform: translate(-50%, -50%); z-index: 300; pointer-events: none; text-align: center; animation: feedback .68s ease-out forwards; }
 .hit-feedback strong { display: block; color: var(--grade); font: 900 clamp(14px, 2.4vw, 24px) ui-monospace, monospace; letter-spacing: .06em; text-shadow: 0 0 12px var(--grade), 0 2px 4px #000; }
 .hit-feedback small { color: white; font: 700 10px ui-monospace, monospace; text-shadow: 0 2px 3px #000; }
 .hit-feedback em { display: block; margin-top: 2px; color: #ffe16b; font: 900 11px/1 ui-monospace, monospace; font-style: normal; letter-spacing: .08em; text-shadow: 0 0 9px rgba(255, 209, 62, .82), 0 2px 3px #000; }
-.moving-feedback strong { color: white; text-shadow: 0 0 12px white, 0 2px 4px #000; }
+.moving-feedback strong { color: transparent; background: linear-gradient(90deg, #ff6b83, #ffe16b, #74ef84, #62eaff, #9c8cff, #ef78ff); background-clip: text; -webkit-background-clip: text; text-shadow: 0 2px 4px #000; }
 
 .primary-button { min-width: 210px; min-height: 48px; margin-top: 15px; padding: 0 28px; border: 1px solid #7cf1ff; border-radius: 4px; background: linear-gradient(180deg, #22b8d2, #0a7899); color: white; font-weight: 800; letter-spacing: .12em; cursor: pointer; box-shadow: 0 0 22px rgba(85, 231, 255, .2), inset 0 1px rgba(255,255,255,.34); }
 .primary-button:hover { filter: brightness(1.12); }
@@ -131,6 +131,7 @@ button { touch-action: manipulation; }
 @keyframes feedback { 0% { opacity: 0; transform: translate(-50%, -35%) scale(.72); } 20% { opacity: 1; transform: translate(-50%, -55%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -115%) scale(1.06); } }
 @keyframes moving-glow { to { opacity: .72; box-shadow: 0 0 13px white, 0 0 32px rgba(191,229,255,.55), inset 0 0 19px rgba(255,255,255,.28); } }
 @keyframes moving-hit { 50% { transform: translate(-50%, -50%) scale(1.22); filter: brightness(1.7); } }
+@keyframes rainbow-hue { to { filter: hue-rotate(360deg); } }
 
 @media (max-width: 960px) {
   .game-layout { grid-template-columns: minmax(170px, 210px) minmax(340px, 560px); }
@@ -165,4 +166,5 @@ button { touch-action: manipulation; }
 
 @media (prefers-reduced-motion: reduce) {
   .beat-note::before, .outer-ring, .beat-note.hit, .hit-feedback, .perfect-combo-display, .moving-ring, .moving-note { animation-duration: .001ms; }
+  .moving-ring { animation: none; }
 }

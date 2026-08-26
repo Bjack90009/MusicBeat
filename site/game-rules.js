@@ -55,6 +55,14 @@
     return Math.round(baseScore * (1 + movingBonusRate(specialHits, bonusPerHit)));
   }
 
+  function movingSpeedMultiplier(spawned, maxNotes, activeNoteCount, finalMultiplier) {
+    return spawned >= maxNotes && activeNoteCount === 0 ? finalMultiplier : 1;
+  }
+
+  function canAcceptMovingHit(lastHitAt, now, cooldownMs) {
+    return !Number.isFinite(lastHitAt) || now - lastHitAt >= cooldownMs;
+  }
+
   function randomBetween(min, max, rng) {
     return min + rng() * (max - min);
   }
@@ -72,7 +80,7 @@
     };
   }
 
-  function advanceMovingNote(current, now, config, rng = Math.random) {
+  function advanceMovingNote(current, now, config, rng = Math.random, speedMultiplier = 1) {
     const state = { ...current };
     const deltaSeconds = Math.max(0, Math.min(.05, (now - state.lastUpdatedAt) / 1000));
     state.lastUpdatedAt = now;
@@ -88,8 +96,8 @@
     if (state.speed < state.targetSpeed) state.speed = Math.min(state.targetSpeed, state.speed + speedStep);
     else state.speed = Math.max(state.targetSpeed, state.speed - speedStep);
 
-    state.x += Math.cos(state.angle) * state.speed * deltaSeconds;
-    state.y += Math.sin(state.angle) * state.speed * deltaSeconds;
+    state.x += Math.cos(state.angle) * state.speed * speedMultiplier * deltaSeconds;
+    state.y += Math.sin(state.angle) * state.speed * speedMultiplier * deltaSeconds;
 
     const radius = config.movingNoteSize / 2;
     const maxX = config.playAreaWidth - radius;
@@ -112,6 +120,8 @@
     nextPerfectStreak,
     movingBonusRate,
     scoreWithMovingBonus,
+    movingSpeedMultiplier,
+    canAcceptMovingHit,
     createMovingNoteState,
     advanceMovingNote
   };

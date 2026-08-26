@@ -1,5 +1,5 @@
 window.GAME_CONFIG = Object.freeze({
-  version: "2026-08-26-r8",
+  version: "2026-08-26-r9",
   durationMs: 5000,
   maxNotes: 5,
   minSpawnIntervalMs: 600,
@@ -18,6 +18,8 @@ window.GAME_CONFIG = Object.freeze({
   movingNoteMinDirectionIntervalMs: 350,
   movingNoteMaxDirectionIntervalMs: 900,
   movingNoteMaxTurnDegrees: 90,
+  movingNoteFinalSpeedMultiplier: 2,
+  movingNoteHitCooldownMs: 100,
   seed: 20260825,
   judgments: [
     { id: "perfect", label: "PERFECT", maxRemainingRatio: 0.20, multiplier: 2, color: "#55e7ff" },

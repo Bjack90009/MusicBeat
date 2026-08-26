@@ -49,6 +49,7 @@
     movingElement: null,
     movingRng: null,
     movingAnimationFrame: 0,
+    movingLastHitAt: Number.NEGATIVE_INFINITY,
     noteSequence: 0,
     activeNotes: new Map(),
     animationFrame: 0,
@@ -293,6 +294,9 @@
 
   function handleMovingHit(event) {
     if (state.phase !== "playing") return;
+    const now = performance.now();
+    if (!rules.canAcceptMovingHit(state.movingLastHitAt, now, config.movingNoteHitCooldownMs)) return;
+    state.movingLastHitAt = now;
     event.preventDefault();
     state.specialHits += 1;
     const pointerType = event.pointerType || "unknown";
@@ -323,7 +327,14 @@
 
   function moveSpecialNote(now) {
     if (state.phase !== "playing" || !state.movingNote || !state.movingElement) return;
-    state.movingNote = rules.advanceMovingNote(state.movingNote, now, config, state.movingRng);
+    const speedMultiplier = rules.movingSpeedMultiplier(
+      state.autoSpawnCount,
+      config.maxNotes,
+      state.activeNotes.size,
+      config.movingNoteFinalSpeedMultiplier
+    );
+    state.movingNote = rules.advanceMovingNote(state.movingNote, now, config, state.movingRng, speedMultiplier);
+    state.movingElement.dataset.speedBoosted = String(speedMultiplier > 1);
     renderMovingNote();
     state.movingAnimationFrame = requestAnimationFrame(moveSpecialNote);
   }
@@ -335,6 +346,7 @@
     state.movingElement = null;
     state.movingNote = null;
     state.movingRng = null;
+    state.movingLastHitAt = Number.NEGATIVE_INFINITY;
   }
 
   function createMovingNote() {
@@ -342,6 +354,7 @@
     const now = performance.now();
     state.movingRng = seededRandom((config.seed ^ 0x51f15e) >>> 0);
     state.movingNote = rules.createMovingNoteState(config, state.movingRng, now);
+    state.movingLastHitAt = Number.NEGATIVE_INFINITY;
     const button = document.createElement("button");
     button.type = "button";
     button.className = "moving-note";

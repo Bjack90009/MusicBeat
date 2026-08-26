@@ -53,6 +53,18 @@ test("PICK ME hits add ten percent of the ordinary note score per hit", () => {
   assert.equal(rules.scoreWithMovingBonus(200, 2, 0.1), 240);
 });
 
+test("PICK ME doubles speed only after every normal note has spawned and disappeared", () => {
+  assert.equal(rules.movingSpeedMultiplier(4, 5, 0, 2), 1);
+  assert.equal(rules.movingSpeedMultiplier(5, 5, 1, 2), 1);
+  assert.equal(rules.movingSpeedMultiplier(5, 5, 0, 2), 2);
+});
+
+test("PICK ME accepts at most one hit per 100ms", () => {
+  assert.equal(rules.canAcceptMovingHit(Number.NEGATIVE_INFINITY, 10, 100), true);
+  assert.equal(rules.canAcceptMovingHit(1000, 1099, 100), false);
+  assert.equal(rules.canAcceptMovingHit(1000, 1100, 100), true);
+});
+
 const movingConfig = {
   ...config,
   movingNoteSize: 72,
@@ -80,6 +92,17 @@ test("moving note accelerates toward its target speed", () => {
   const next = rules.advanceMovingNote(state, 50, movingConfig, () => .5);
   assert.equal(next.speed, 96);
   assert.ok(next.x > state.x);
+});
+
+test("moving note applies the final speed multiplier to displacement", () => {
+  const state = {
+    x: 250, y: 250, angle: 0, speed: 100, targetSpeed: 100,
+    nextBehaviorAt: 1000, lastUpdatedAt: 0
+  };
+  const normal = rules.advanceMovingNote(state, 50, movingConfig, () => .5, 1);
+  const boosted = rules.advanceMovingNote(state, 50, movingConfig, () => .5, 2);
+  assert.equal(normal.x, 255);
+  assert.equal(boosted.x, 260);
 });
 
 test("moving note reflects from the play-area edge", () => {
