@@ -47,6 +47,14 @@
     return gradeId === "perfect" ? currentStreak + 1 : 0;
   }
 
+  function movingBonusRate(specialHits, bonusPerHit) {
+    return Math.max(0, specialHits) * Math.max(0, bonusPerHit);
+  }
+
+  function scoreWithMovingBonus(baseScore, specialHits, bonusPerHit) {
+    return Math.round(baseScore * (1 + movingBonusRate(specialHits, bonusPerHit)));
+  }
+
   function randomBetween(min, max, rng) {
     return min + rng() * (max - min);
   }
@@ -102,6 +110,8 @@
     safeSpawnCandidates,
     selectSafePosition,
     nextPerfectStreak,
+    movingBonusRate,
+    scoreWithMovingBonus,
     createMovingNoteState,
     advanceMovingNote
   };

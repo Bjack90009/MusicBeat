@@ -14,6 +14,7 @@
     timer: document.querySelector("#timer"),
     perfectCombo: document.querySelector("#perfect-combo"),
     score: document.querySelector("#score"),
+    specialBonus: document.querySelector("#special-bonus"),
     combo: document.querySelector("#combo"),
     maxCombo: document.querySelector("#max-combo"),
     hits: document.querySelector("#hits"),
@@ -52,6 +53,7 @@
     activeNotes: new Map(),
     animationFrame: 0,
     score: 0,
+    rawScore: 0,
     combo: 0,
     maxCombo: 0,
     hits: 0,
@@ -143,6 +145,7 @@
 
   function resetStats() {
     state.score = 0;
+    state.rawScore = 0;
     state.combo = 0;
     state.maxCombo = 0;
     state.hits = 0;
@@ -163,7 +166,9 @@
   }
 
   function renderStats() {
+    state.score = rules.scoreWithMovingBonus(state.rawScore, state.specialHits, config.movingNoteBonusPerHit);
     els.score.textContent = formatScore.format(state.score);
+    els.specialBonus.textContent = `×${formatBonusRate(rules.movingBonusRate(state.specialHits, config.movingNoteBonusPerHit))}`;
     els.combo.textContent = state.combo;
     els.maxCombo.textContent = state.maxCombo;
     els.hits.textContent = state.hits;
@@ -172,6 +177,10 @@
     els.perfectCombo.textContent = `PERFECT COMBO ×${state.perfectStreak}`;
     els.perfectCombo.classList.toggle("active", state.perfectStreak > 0);
     gradeIds.forEach((id) => { document.querySelector(`#${id}-count`).textContent = state.grades[id]; });
+  }
+
+  function formatBonusRate(value) {
+    return Number(value.toFixed(2)).toString();
   }
 
   function chooseQuality() {
@@ -227,8 +236,9 @@
     const now = performance.now();
     const remainingRatio = Math.max(0, Math.min(1, (note.expiresAt - now) / config.noteLifetimeMs));
     const tier = getJudgment(remainingRatio);
-    const points = Math.round(note.quality.baseScore * tier.multiplier);
-    state.score += points;
+    const rawPoints = Math.round(note.quality.baseScore * tier.multiplier);
+    const previousScore = state.score;
+    state.rawScore += rawPoints;
     state.combo += 1;
     state.maxCombo = Math.max(state.maxCombo, state.combo);
     state.hits += 1;
@@ -239,6 +249,7 @@
     state.inputMethods[pointerType] = (state.inputMethods[pointerType] || 0) + 1;
     state.perfectStreak = rules.nextPerfectStreak(state.perfectStreak, tier.id);
     renderStats();
+    const points = state.score - previousScore;
     playTone(tier.id);
     showFeedback(note, tier, points, state.perfectStreak);
     note.element.classList.add("hit");
@@ -279,7 +290,6 @@
   function handleMovingHit(event) {
     if (state.phase !== "playing") return;
     event.preventDefault();
-    state.score += config.movingNoteScore;
     state.specialHits += 1;
     const pointerType = event.pointerType || "unknown";
     state.specialInputMethods[pointerType] = (state.specialInputMethods[pointerType] || 0) + 1;
@@ -296,7 +306,7 @@
     const feedback = document.createElement("div");
     feedback.className = "hit-feedback moving-feedback";
     feedback.style.cssText = `left:${state.movingNote.x / config.playAreaWidth * 100}%;top:${state.movingNote.y / config.playAreaHeight * 100}%;--grade:#ffffff`;
-    feedback.innerHTML = `<strong>PICK ME</strong><small>+${formatScore.format(config.movingNoteScore)}</small>`;
+    feedback.innerHTML = "<strong>lalala</strong>";
     els.playfield.append(feedback);
     window.setTimeout(() => feedback.remove(), 720);
   }
@@ -331,7 +341,7 @@
     const button = document.createElement("button");
     button.type = "button";
     button.className = "moving-note";
-    button.setAttribute("aria-label", `PICK ME 移动白色节拍，每次命中增加 ${config.movingNoteScore} 分`);
+    button.setAttribute("aria-label", `PICK ME 移动白色节拍，每次命中使当前总分增加 ${formatBonusRate(config.movingNoteBonusPerHit * 100)}%`);
     button.style.setProperty("--moving-size", `${config.movingNoteSize / config.playAreaWidth * 100}%`);
     button.innerHTML = '<span class="moving-ring"><i></i></span><small>PICK ME</small>';
     button.addEventListener("pointerdown", handleMovingHit);

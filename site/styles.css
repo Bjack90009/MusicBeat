@@ -43,6 +43,9 @@ button { touch-action: manipulation; }
 .score-main { padding: 17px 15px 13px; border-bottom: 1px solid rgba(93, 198, 230, .11); }
 .score-main small, .score-pairs small { display: block; color: var(--muted); font-size: 10px; }
 .score-main strong { display: block; margin-top: 2px; color: var(--cyan); font: 800 34px/1.05 ui-monospace, monospace; text-shadow: 0 0 16px rgba(85, 231, 255, .42); }
+.special-bonus { display: flex; align-items: center; justify-content: space-between; padding: 9px 15px; border-bottom: 1px solid rgba(93, 198, 230, .11); background: rgba(255, 255, 255, .018); }
+.special-bonus small { color: #dceeff; font-size: 10px; letter-spacing: .06em; }
+.special-bonus strong { color: white; font: 800 18px/1 ui-monospace, monospace; text-shadow: 0 0 12px rgba(191, 234, 255, .62); }
 .score-pairs { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: rgba(93, 198, 230, .1); }
 .score-pairs span { padding: 11px 14px; background: #07131f; }
 .score-pairs strong { display: block; margin-top: 2px; font: 700 18px ui-monospace, monospace; }

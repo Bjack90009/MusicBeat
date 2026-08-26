@@ -1,6 +1,6 @@
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
 const SESSION_ID_PATTERN = /^[a-zA-Z0-9-]{8,80}$/;
-const MAX_SCORE = 100000;
+const MAX_SCORE = 200000;
 const MAX_NOTES = 20;
 const MAX_SPECIAL_HITS = 200;
 

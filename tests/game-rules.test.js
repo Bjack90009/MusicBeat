@@ -46,6 +46,13 @@ test("perfect streak increments and resets without a reward trigger", () => {
   assert.equal(rules.nextPerfectStreak(streak, "great"), 0);
 });
 
+test("PICK ME hits add ten percent of the ordinary note score per hit", () => {
+  assert.equal(rules.movingBonusRate(0, 0.1), 0);
+  assert.equal(rules.movingBonusRate(2, 0.1), 0.2);
+  assert.equal(rules.scoreWithMovingBonus(200, 0, 0.1), 200);
+  assert.equal(rules.scoreWithMovingBonus(200, 2, 0.1), 240);
+});
+
 const movingConfig = {
   ...config,
   movingNoteSize: 72,
