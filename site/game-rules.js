@@ -55,12 +55,22 @@
     return Math.round(baseScore * (1 + movingBonusRate(specialHits, bonusPerHit)));
   }
 
-  function movingSpeedMultiplier(spawned, maxNotes, activeNoteCount, finalMultiplier) {
-    return spawned >= maxNotes && activeNoteCount === 0 ? finalMultiplier : 1;
+  function movingSpeedMultiplier(specialHits, speedBonusPerHit) {
+    return 1 + Math.max(0, specialHits) * Math.max(0, speedBonusPerHit);
   }
 
   function canAcceptMovingHit(lastHitAt, now, cooldownMs) {
     return !Number.isFinite(lastHitAt) || now - lastHitAt >= cooldownMs;
+  }
+
+  function turnMovingNoteOnHit(current, config, rng = Math.random) {
+    const state = { ...current };
+    const minTurn = Math.max(0, Math.min(config.movingNoteHitMinTurnDegrees, config.movingNoteHitMaxTurnDegrees));
+    const maxTurn = Math.max(minTurn, Math.max(config.movingNoteHitMinTurnDegrees, config.movingNoteHitMaxTurnDegrees));
+    const turnRadians = randomBetween(minTurn, maxTurn, rng) * Math.PI / 180;
+    state.angle += (rng() < .5 ? -1 : 1) * turnRadians;
+    state.angle = ((state.angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    return state;
   }
 
   function randomBetween(min, max, rng) {
@@ -69,12 +79,13 @@
 
   function createMovingNoteState(config, rng = Math.random, now = 0) {
     const radius = config.movingNoteSize / 2;
+    const initialSpeed = randomBetween(config.movingNoteMinSpeed, config.movingNoteMaxSpeed, rng);
     return {
       x: randomBetween(radius, config.playAreaWidth - radius, rng),
       y: randomBetween(radius, config.playAreaHeight - radius, rng),
       angle: randomBetween(0, Math.PI * 2, rng),
-      speed: randomBetween(config.movingNoteMinSpeed, config.movingNoteMaxSpeed, rng),
-      targetSpeed: randomBetween(config.movingNoteMinSpeed, config.movingNoteMaxSpeed, rng),
+      initialSpeed,
+      speed: initialSpeed,
       nextBehaviorAt: now + randomBetween(config.movingNoteMinDirectionIntervalMs, config.movingNoteMaxDirectionIntervalMs, rng),
       lastUpdatedAt: now
     };
@@ -86,18 +97,14 @@
     state.lastUpdatedAt = now;
 
     if (now >= state.nextBehaviorAt) {
-      state.targetSpeed = randomBetween(config.movingNoteMinSpeed, config.movingNoteMaxSpeed, rng);
       const maxTurnRadians = config.movingNoteMaxTurnDegrees * Math.PI / 180;
       state.angle += randomBetween(-maxTurnRadians, maxTurnRadians, rng);
       state.nextBehaviorAt = now + randomBetween(config.movingNoteMinDirectionIntervalMs, config.movingNoteMaxDirectionIntervalMs, rng);
     }
 
-    const speedStep = config.movingNoteAcceleration * deltaSeconds;
-    if (state.speed < state.targetSpeed) state.speed = Math.min(state.targetSpeed, state.speed + speedStep);
-    else state.speed = Math.max(state.targetSpeed, state.speed - speedStep);
-
-    state.x += Math.cos(state.angle) * state.speed * speedMultiplier * deltaSeconds;
-    state.y += Math.sin(state.angle) * state.speed * speedMultiplier * deltaSeconds;
+    state.speed = state.initialSpeed * speedMultiplier;
+    state.x += Math.cos(state.angle) * state.speed * deltaSeconds;
+    state.y += Math.sin(state.angle) * state.speed * deltaSeconds;
 
     const radius = config.movingNoteSize / 2;
     const maxX = config.playAreaWidth - radius;
@@ -122,6 +129,7 @@
     scoreWithMovingBonus,
     movingSpeedMultiplier,
     canAcceptMovingHit,
+    turnMovingNoteOnHit,
     createMovingNoteState,
     advanceMovingNote
   };

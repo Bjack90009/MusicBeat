@@ -53,10 +53,10 @@ test("PICK ME hits add ten percent of the ordinary note score per hit", () => {
   assert.equal(rules.scoreWithMovingBonus(200, 2, 0.1), 240);
 });
 
-test("PICK ME doubles speed only after every normal note has spawned and disappeared", () => {
-  assert.equal(rules.movingSpeedMultiplier(4, 5, 0, 2), 1);
-  assert.equal(rules.movingSpeedMultiplier(5, 5, 1, 2), 1);
-  assert.equal(rules.movingSpeedMultiplier(5, 5, 0, 2), 2);
+test("PICK ME speed grows twenty percent of initial speed per accepted hit", () => {
+  assert.equal(rules.movingSpeedMultiplier(0, 0.2), 1);
+  assert.equal(rules.movingSpeedMultiplier(2, 0.2), 1.4);
+  assert.equal(rules.movingSpeedMultiplier(5, 0.2), 2);
 });
 
 test("PICK ME accepts at most one hit per 100ms", () => {
@@ -70,44 +70,49 @@ const movingConfig = {
   movingNoteSize: 72,
   movingNoteMinSpeed: 90,
   movingNoteMaxSpeed: 180,
-  movingNoteAcceleration: 120,
   movingNoteMinDirectionIntervalMs: 350,
   movingNoteMaxDirectionIntervalMs: 900,
-  movingNoteMaxTurnDegrees: 90
+  movingNoteMaxTurnDegrees: 90,
+  movingNoteHitMinTurnDegrees: 60,
+  movingNoteHitMaxTurnDegrees: 150
 };
+
+test("each accepted PICK ME hit changes direction by the configured range", () => {
+  const initial = { angle: 0.5 };
+  const turned = rules.turnMovingNoteOnHit(initial, movingConfig, () => 0);
+  const circularDelta = Math.min(
+    Math.abs(turned.angle - initial.angle),
+    Math.PI * 2 - Math.abs(turned.angle - initial.angle)
+  );
+  assert.ok(circularDelta >= 60 * Math.PI / 180 - 1e-9);
+  assert.ok(circularDelta <= 150 * Math.PI / 180 + 1e-9);
+  assert.equal(initial.angle, 0.5);
+});
 
 test("moving note is created fully inside the play area", () => {
   const state = rules.createMovingNoteState(movingConfig, () => .5, 1000);
   assert.ok(state.x >= 36 && state.x <= 464);
   assert.ok(state.y >= 36 && state.y <= 464);
   assert.ok(state.speed >= 90 && state.speed <= 180);
+  assert.equal(state.initialSpeed, state.speed);
   assert.ok(state.nextBehaviorAt >= 1350 && state.nextBehaviorAt <= 1900);
 });
 
-test("moving note accelerates toward its target speed", () => {
+test("moving note derives current speed and displacement from its initial speed", () => {
   const state = {
-    x: 250, y: 250, angle: 0, speed: 90, targetSpeed: 180,
-    nextBehaviorAt: 10000, lastUpdatedAt: 0
-  };
-  const next = rules.advanceMovingNote(state, 50, movingConfig, () => .5);
-  assert.equal(next.speed, 96);
-  assert.ok(next.x > state.x);
-});
-
-test("moving note applies the final speed multiplier to displacement", () => {
-  const state = {
-    x: 250, y: 250, angle: 0, speed: 100, targetSpeed: 100,
+    x: 250, y: 250, angle: 0, initialSpeed: 100, speed: 100,
     nextBehaviorAt: 1000, lastUpdatedAt: 0
   };
   const normal = rules.advanceMovingNote(state, 50, movingConfig, () => .5, 1);
-  const boosted = rules.advanceMovingNote(state, 50, movingConfig, () => .5, 2);
+  const boosted = rules.advanceMovingNote(state, 50, movingConfig, () => .5, 1.4);
   assert.equal(normal.x, 255);
-  assert.equal(boosted.x, 260);
+  assert.equal(boosted.speed, 140);
+  assert.equal(boosted.x, 257);
 });
 
 test("moving note reflects from the play-area edge", () => {
   const state = {
-    x: 463, y: 250, angle: 0, speed: 180, targetSpeed: 180,
+    x: 463, y: 250, angle: 0, initialSpeed: 180, speed: 180,
     nextBehaviorAt: 10000, lastUpdatedAt: 0
   };
   const next = rules.advanceMovingNote(state, 50, movingConfig, () => .5);

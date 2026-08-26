@@ -1,5 +1,5 @@
 window.GAME_CONFIG = Object.freeze({
-  version: "2026-08-26-r9",
+  version: "2026-08-26-r10",
   durationMs: 5000,
   maxNotes: 5,
   minSpawnIntervalMs: 600,
@@ -14,11 +14,12 @@ window.GAME_CONFIG = Object.freeze({
   movingNoteBonusPerHit: 0.1,
   movingNoteMinSpeed: 90,
   movingNoteMaxSpeed: 180,
-  movingNoteAcceleration: 120,
   movingNoteMinDirectionIntervalMs: 350,
   movingNoteMaxDirectionIntervalMs: 900,
   movingNoteMaxTurnDegrees: 90,
-  movingNoteFinalSpeedMultiplier: 2,
+  movingNoteHitMinTurnDegrees: 60,
+  movingNoteHitMaxTurnDegrees: 150,
+  movingNoteSpeedBonusPerHit: 0.2,
   movingNoteHitCooldownMs: 100,
   seed: 20260825,
   judgments: [

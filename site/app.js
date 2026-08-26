@@ -5,6 +5,7 @@
   const rules = window.GAME_RULES;
   const runtime = window.RUNTIME_CONFIG || {};
   const apiBase = String(runtime.apiBaseUrl || (location.hostname === "127.0.0.1" || location.hostname === "localhost" ? "http://127.0.0.1:8787" : "")).replace(/\/$/, "");
+  const savedPlayerNameKey = "music-beat-player-name";
   const formatScore = new Intl.NumberFormat("zh-CN");
   const gradeIds = ["perfect", "great", "good", "early"];
   const els = {
@@ -299,6 +300,7 @@
     state.movingLastHitAt = now;
     event.preventDefault();
     state.specialHits += 1;
+    state.movingNote = rules.turnMovingNoteOnHit(state.movingNote, config, state.movingRng);
     const pointerType = event.pointerType || "unknown";
     state.specialInputMethods[pointerType] = (state.specialInputMethods[pointerType] || 0) + 1;
     renderStats();
@@ -327,14 +329,12 @@
 
   function moveSpecialNote(now) {
     if (state.phase !== "playing" || !state.movingNote || !state.movingElement) return;
-    const speedMultiplier = rules.movingSpeedMultiplier(
-      state.autoSpawnCount,
-      config.maxNotes,
-      state.activeNotes.size,
-      config.movingNoteFinalSpeedMultiplier
-    );
+    const speedMultiplier = rules.movingSpeedMultiplier(state.specialHits, config.movingNoteSpeedBonusPerHit);
     state.movingNote = rules.advanceMovingNote(state.movingNote, now, config, state.movingRng, speedMultiplier);
-    state.movingElement.dataset.speedBoosted = String(speedMultiplier > 1);
+    state.movingElement.dataset.speedMultiplier = speedMultiplier.toFixed(2);
+    state.movingElement.dataset.initialSpeed = state.movingNote.initialSpeed.toFixed(2);
+    state.movingElement.dataset.currentSpeed = state.movingNote.speed.toFixed(2);
+    state.movingElement.dataset.angle = state.movingNote.angle.toFixed(6);
     renderMovingNote();
     state.movingAnimationFrame = requestAnimationFrame(moveSpecialNote);
   }
@@ -358,7 +358,7 @@
     const button = document.createElement("button");
     button.type = "button";
     button.className = "moving-note";
-    button.setAttribute("aria-label", `PICK ME 移动白色节拍，每次命中使当前总分增加 ${formatBonusRate(config.movingNoteBonusPerHit * 100)}%`);
+    button.setAttribute("aria-label", `PICK ME 彩虹色移动节拍，每次命中使当前总分增加 ${formatBonusRate(config.movingNoteBonusPerHit * 100)}%`);
     button.style.setProperty("--moving-size", `${config.movingNoteSize / config.playAreaWidth * 100}%`);
     button.innerHTML = '<span class="moving-ring"><i></i></span><small>PICK ME</small>';
     button.addEventListener("pointerdown", handleMovingHit);
@@ -491,8 +491,10 @@
     els.declineRank.hidden = false;
     els.closeResult.hidden = true;
     els.nameError.textContent = "";
+    try { els.nameInput.value = localStorage.getItem(savedPlayerNameKey) || ""; }
+    catch (_) { els.nameInput.value = ""; }
     openModal();
-    setTimeout(() => els.nameInput.focus(), 60);
+    setTimeout(() => { els.nameInput.focus(); els.nameInput.select(); }, 60);
   }
 
   function showStandardResult(message = "") {
@@ -514,6 +516,7 @@
       els.nameError.textContent = "请输入 1–16 个字符的名称";
       return;
     }
+    try { localStorage.setItem(savedPlayerNameKey, name); } catch (_) { /* storage unavailable */ }
     els.confirmRank.disabled = true;
     els.nameError.textContent = "";
     try {
