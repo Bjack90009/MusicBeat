@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#06111b">
   <meta name="description" content="新活动：音乐节拍 — 5 秒节拍点击挑战">
   <title>新活动：音乐节拍</title>
-  <link rel="stylesheet" href="./styles.css?v=20260826-r10">
+  <link rel="stylesheet" href="./styles.css?v=20260826-r11">
 </head>
 <body>
   <main class="app-shell">
@@ -19,8 +19,6 @@
     <section class="game-layout" aria-label="音乐节拍游戏">
       <aside class="panel score-panel" aria-label="本局计分表">
         <div class="panel-heading"><span>本局记录</span><i>LIVE</i></div>
-        <div class="score-main"><small>得分</small><strong id="score">0</strong></div>
-        <div class="special-bonus"><small>PICK ME 加成</small><strong id="special-bonus">+0%</strong></div>
         <div class="score-pairs">
           <span><small>连击</small><strong id="combo">0</strong></span>
           <span><small>最高连击</small><strong id="max-combo">0</strong></span>
@@ -32,20 +30,28 @@
           <span style="--grade:#91ed65"><i>GREAT</i><b id="great-count">0</b></span>
           <span style="--grade:#ffd85a"><i>GOOD</i><b id="good-count">0</b></span>
           <span style="--grade:#ff7191"><i>EARLY</i><b id="early-count">0</b></span>
-          <span class="special-count" style="--grade:#ffffff"><i>PICK ME 命中</i><b id="special-hits">0</b></span>
+          <span class="special-count"><i>PICK ME 命中</i><b id="special-hits">0</b></span>
         </div>
       </aside>
 
       <section class="play-column">
-        <div class="timer-wrap" aria-live="polite">
-          <div class="timer-main"><small>剩余时间</small><strong id="timer">5.00</strong><span>秒</span></div>
-          <b id="perfect-combo" class="perfect-combo-display">PERFECT COMBO ×0</b>
+        <div class="play-hud" aria-live="polite">
+          <div class="score-hud">
+            <small>总得分</small>
+            <strong id="score">0</strong>
+            <span class="bonus-hud"><i>PICK ME 加成</i><b id="special-bonus">+0%</b></span>
+          </div>
+          <div class="timer-wrap">
+            <div class="timer-main"><small>剩余时间</small><strong id="timer">5.00</strong><span>秒</span></div>
+            <b id="perfect-combo" class="perfect-combo-display">PERFECT COMBO ×0</b>
+          </div>
         </div>
         <div id="playfield" class="playfield" aria-label="节拍可点击区域">
           <div class="field-grid" aria-hidden="true"></div>
           <div id="field-message" class="field-message">
-            <strong>准备好了吗？</strong>
-            <span>普通节拍看准缩圈，PICK ME 可提高当前总分</span>
+            <strong id="field-message-title">准备好了吗？</strong>
+            <span id="field-message-detail">普通节拍看准缩圈点击得分；点击捣乱的粉丝获得得分加成。</span>
+            <ol id="field-top-three" class="field-top-three" hidden></ol>
           </div>
         </div>
         <button id="start-button" class="primary-button" type="button">开始挑战</button>
@@ -81,9 +87,9 @@
     </section>
   </div>
 
-  <script src="./game-config.js?v=20260826-r10"></script>
-  <script src="./game-rules.js?v=20260826-r10"></script>
+  <script src="./game-config.js?v=20260826-r11"></script>
+  <script src="./game-rules.js?v=20260826-r11"></script>
   <script src="./runtime-config.js"></script>
-  <script src="./app.js?v=20260826-r10"></script>
+  <script src="./app.js?v=20260826-r11"></script>
 </body>
 </html>

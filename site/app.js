@@ -11,6 +11,9 @@
   const els = {
     playfield: document.querySelector("#playfield"),
     fieldMessage: document.querySelector("#field-message"),
+    fieldMessageTitle: document.querySelector("#field-message-title"),
+    fieldMessageDetail: document.querySelector("#field-message-detail"),
+    fieldTopThree: document.querySelector("#field-top-three"),
     start: document.querySelector("#start-button"),
     timer: document.querySelector("#timer"),
     perfectCombo: document.querySelector("#perfect-combo"),
@@ -66,6 +69,7 @@
     timingSamples: [],
     inputMethods: {},
     pendingRun: null,
+    leaderboardEntries: [],
     rng: Math.random
   };
 
@@ -465,8 +469,7 @@
     els.start.disabled = false;
     els.start.textContent = "再来一次";
     els.fieldMessage.hidden = false;
-    els.fieldMessage.querySelector("strong").textContent = "挑战完成";
-    els.fieldMessage.querySelector("span").textContent = `本局得分 ${formatScore.format(state.score)}`;
+    renderFieldTopThree(state.leaderboardEntries);
     const run = buildRunPayload();
     state.pendingRun = run;
 
@@ -552,15 +555,46 @@
   function openModal() { els.modal.hidden = false; }
   function closeModal() { els.modal.hidden = true; }
 
+  function renderFieldTopThree(entries) {
+    els.fieldMessageTitle.textContent = "排行榜 TOP 3";
+    const topThree = Array.isArray(entries) ? entries.slice(0, 3) : [];
+    els.fieldTopThree.innerHTML = "";
+    if (!topThree.length) {
+      els.fieldTopThree.hidden = true;
+      els.fieldMessageDetail.textContent = "暂时还没有上榜记录";
+      return;
+    }
+    els.fieldMessageDetail.textContent = "";
+    els.fieldTopThree.hidden = false;
+    topThree.forEach((entry) => {
+      const item = document.createElement("li");
+      const name = document.createElement("span");
+      const points = document.createElement("b");
+      name.className = "field-player";
+      points.className = "field-points";
+      name.textContent = entry.name;
+      points.textContent = formatScore.format(entry.score);
+      item.append(name, points);
+      els.fieldTopThree.append(item);
+    });
+  }
+
   async function loadLeaderboard() {
     try {
       const result = await apiRequest("/api/leaderboard");
       const entries = Array.isArray(result.entries) ? result.entries : [];
+      state.leaderboardEntries = entries;
       els.leaderboard.innerHTML = entries.length ? entries.map((entry) => `<li><span class="player"></span><span class="points">${formatScore.format(entry.score)}</span></li>`).join("") : '<li class="leaderboard-empty">还没有上榜记录，成为第一名吧</li>';
       entries.forEach((entry, index) => { els.leaderboard.children[index].querySelector(".player").textContent = entry.name; });
+      if (state.phase === "finished") renderFieldTopThree(entries);
       els.networkStatus.textContent = "";
     } catch (_) {
       els.leaderboard.innerHTML = '<li class="leaderboard-empty">排行榜暂时无法连接</li>';
+      if (state.phase === "finished" && !state.leaderboardEntries.length) {
+        els.fieldTopThree.hidden = true;
+        els.fieldMessageTitle.textContent = "排行榜 TOP 3";
+        els.fieldMessageDetail.textContent = "排行榜暂时无法连接";
+      }
     }
   }
 
