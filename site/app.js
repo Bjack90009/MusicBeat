@@ -296,7 +296,7 @@
     const feedback = document.createElement("div");
     feedback.className = "hit-feedback moving-feedback";
     feedback.style.cssText = `left:${state.movingNote.x / config.playAreaWidth * 100}%;top:${state.movingNote.y / config.playAreaHeight * 100}%;--grade:#ffffff`;
-    feedback.innerHTML = `<strong>SPECIAL</strong><small>+${formatScore.format(config.movingNoteScore)}</small>`;
+    feedback.innerHTML = `<strong>PICK ME</strong><small>+${formatScore.format(config.movingNoteScore)}</small>`;
     els.playfield.append(feedback);
     window.setTimeout(() => feedback.remove(), 720);
   }
@@ -308,21 +308,32 @@
   }
 
   function moveSpecialNote(now) {
+    if (state.phase !== "playing" || !state.movingNote || !state.movingElement) return;
     state.movingNote = rules.advanceMovingNote(state.movingNote, now, config, state.movingRng);
     renderMovingNote();
     state.movingAnimationFrame = requestAnimationFrame(moveSpecialNote);
   }
 
+  function removeMovingNote() {
+    cancelAnimationFrame(state.movingAnimationFrame);
+    state.movingAnimationFrame = 0;
+    state.movingElement?.remove();
+    state.movingElement = null;
+    state.movingNote = null;
+    state.movingRng = null;
+  }
+
   function createMovingNote() {
+    removeMovingNote();
     const now = performance.now();
     state.movingRng = seededRandom((config.seed ^ 0x51f15e) >>> 0);
     state.movingNote = rules.createMovingNoteState(config, state.movingRng, now);
     const button = document.createElement("button");
     button.type = "button";
     button.className = "moving-note";
-    button.setAttribute("aria-label", `移动白色特殊节拍，每次命中增加 ${config.movingNoteScore} 分`);
+    button.setAttribute("aria-label", `PICK ME 移动白色节拍，每次命中增加 ${config.movingNoteScore} 分`);
     button.style.setProperty("--moving-size", `${config.movingNoteSize / config.playAreaWidth * 100}%`);
-    button.innerHTML = '<span class="moving-ring"><i></i></span><small>SPECIAL</small>';
+    button.innerHTML = '<span class="moving-ring"><i></i></span><small>PICK ME</small>';
     button.addEventListener("pointerdown", handleMovingHit);
     state.movingElement = button;
     els.playfield.append(button);
@@ -390,6 +401,7 @@
     els.start.disabled = true;
     els.start.textContent = "挑战进行中";
     els.networkStatus.textContent = "";
+    createMovingNote();
     apiRequest("/api/sessions", { method: "POST", body: JSON.stringify(sessionContext()) }, true).catch(() => {
       els.networkStatus.textContent = "记录服务暂时离线，本局数据将在恢复后补传";
     });
@@ -420,6 +432,7 @@
   async function finishGame() {
     state.phase = "finished";
     cancelAnimationFrame(state.animationFrame);
+    removeMovingNote();
     for (const note of [...state.activeNotes.values()]) registerMiss(note);
     els.timer.textContent = "0.00";
     els.start.disabled = false;
@@ -532,7 +545,6 @@
     cancelAnimationFrame(state.movingAnimationFrame);
   });
 
-  createMovingNote();
   renderStats();
   loadLeaderboard();
   flushQueue();
