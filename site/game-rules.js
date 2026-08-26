@@ -47,19 +47,62 @@
     return gradeId === "perfect" ? currentStreak + 1 : 0;
   }
 
-  function shouldTriggerBonus(perfectStreak, alreadyTriggered, triggerCombo) {
-    return !alreadyTriggered && perfectStreak === triggerCombo;
+  function randomBetween(min, max, rng) {
+    return min + rng() * (max - min);
   }
 
-  function bonusWindowMs(noteCount, spawnIntervalMs, noteLifetimeMs) {
-    return Math.max(0, noteCount - 1) * spawnIntervalMs + noteLifetimeMs;
+  function createMovingNoteState(config, rng = Math.random, now = 0) {
+    const radius = config.movingNoteSize / 2;
+    return {
+      x: randomBetween(radius, config.playAreaWidth - radius, rng),
+      y: randomBetween(radius, config.playAreaHeight - radius, rng),
+      angle: randomBetween(0, Math.PI * 2, rng),
+      speed: randomBetween(config.movingNoteMinSpeed, config.movingNoteMaxSpeed, rng),
+      targetSpeed: randomBetween(config.movingNoteMinSpeed, config.movingNoteMaxSpeed, rng),
+      nextBehaviorAt: now + randomBetween(config.movingNoteMinDirectionIntervalMs, config.movingNoteMaxDirectionIntervalMs, rng),
+      lastUpdatedAt: now
+    };
+  }
+
+  function advanceMovingNote(current, now, config, rng = Math.random) {
+    const state = { ...current };
+    const deltaSeconds = Math.max(0, Math.min(.05, (now - state.lastUpdatedAt) / 1000));
+    state.lastUpdatedAt = now;
+
+    if (now >= state.nextBehaviorAt) {
+      state.targetSpeed = randomBetween(config.movingNoteMinSpeed, config.movingNoteMaxSpeed, rng);
+      const maxTurnRadians = config.movingNoteMaxTurnDegrees * Math.PI / 180;
+      state.angle += randomBetween(-maxTurnRadians, maxTurnRadians, rng);
+      state.nextBehaviorAt = now + randomBetween(config.movingNoteMinDirectionIntervalMs, config.movingNoteMaxDirectionIntervalMs, rng);
+    }
+
+    const speedStep = config.movingNoteAcceleration * deltaSeconds;
+    if (state.speed < state.targetSpeed) state.speed = Math.min(state.targetSpeed, state.speed + speedStep);
+    else state.speed = Math.max(state.targetSpeed, state.speed - speedStep);
+
+    state.x += Math.cos(state.angle) * state.speed * deltaSeconds;
+    state.y += Math.sin(state.angle) * state.speed * deltaSeconds;
+
+    const radius = config.movingNoteSize / 2;
+    const maxX = config.playAreaWidth - radius;
+    const maxY = config.playAreaHeight - radius;
+    if (state.x <= radius || state.x >= maxX) {
+      state.x = Math.max(radius, Math.min(maxX, state.x));
+      state.angle = Math.PI - state.angle;
+    }
+    if (state.y <= radius || state.y >= maxY) {
+      state.y = Math.max(radius, Math.min(maxY, state.y));
+      state.angle = -state.angle;
+    }
+    state.angle = ((state.angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    return state;
   }
 
   return {
     safeSpawnCandidates,
     selectSafePosition,
     nextPerfectStreak,
-    shouldTriggerBonus,
-    bonusWindowMs
+    createMovingNoteState,
+    advanceMovingNote
   };
 });

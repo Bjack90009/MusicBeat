@@ -1,7 +1,8 @@
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
 const SESSION_ID_PATTERN = /^[a-zA-Z0-9-]{8,80}$/;
-const MAX_SCORE = 20000;
+const MAX_SCORE = 100000;
 const MAX_NOTES = 20;
+const MAX_SPECIAL_HITS = 200;
 
 export default {
   async fetch(request, env) {
@@ -73,8 +74,9 @@ async function createRun(request, env, cors) {
         session_id, score, combo_max, hits, misses, spawned,
         perfect_count, great_count, good_count, early_count,
         quality_spawned_json, quality_hit_json, timing_samples_json, input_methods_json,
+        special_hits, special_input_methods_json,
         duration_played_ms
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(session_id) DO UPDATE SET
         score = excluded.score,
         combo_max = excluded.combo_max,
@@ -89,12 +91,15 @@ async function createRun(request, env, cors) {
         quality_hit_json = excluded.quality_hit_json,
         timing_samples_json = excluded.timing_samples_json,
         input_methods_json = excluded.input_methods_json,
+        special_hits = excluded.special_hits,
+        special_input_methods_json = excluded.special_input_methods_json,
         duration_played_ms = excluded.duration_played_ms
     `).bind(
       run.sessionId, run.score, run.comboMax, run.hits, run.misses, run.spawned,
       run.grades.perfect, run.grades.great, run.grades.good, run.grades.early,
       JSON.stringify(run.qualitySpawned), JSON.stringify(run.qualityHit),
-      JSON.stringify(run.timingSamples), JSON.stringify(run.inputMethods), run.durationPlayedMs
+      JSON.stringify(run.timingSamples), JSON.stringify(run.inputMethods),
+      run.specialHits, JSON.stringify(run.specialInputMethods), run.durationPlayedMs
     ),
     env.DB.prepare(`
       UPDATE sessions
@@ -177,6 +182,7 @@ function validateRun(body) {
   const misses = safeInteger(body.misses, 0, MAX_NOTES, null, "misses");
   const spawned = safeInteger(body.spawned, 0, MAX_NOTES, null, "spawned");
   const durationPlayedMs = safeInteger(body.durationPlayedMs, 4000, 7000, null, "durationPlayedMs");
+  const specialHits = safeInteger(body.specialHits, 0, MAX_SPECIAL_HITS, 0, "specialHits");
   const grades = validateCountMap(body.grades, ["perfect", "great", "good", "early"]);
   const qualitySpawned = validateCountMap(body.qualitySpawned, ["green", "blue", "purple", "gold"]);
   const qualityHit = validateCountMap(body.qualityHit, ["green", "blue", "purple", "gold"]);
@@ -190,8 +196,9 @@ function validateRun(body) {
   if (timingSamples.length !== hits || timingSamples.some((value) => !Number.isFinite(value) || value < 0 || value > 1)) {
     throw new ClientError("点击时机数据不一致", 400);
   }
-  const inputMethods = validateInputMethods(body.inputMethods, hits);
-  return { sessionId, configVersion, score, comboMax, hits, misses, spawned, durationPlayedMs, grades, qualitySpawned, qualityHit, timingSamples, inputMethods };
+  const inputMethods = validateInputMethods(body.inputMethods, hits, MAX_NOTES);
+  const specialInputMethods = validateInputMethods(body.specialInputMethods, specialHits, MAX_SPECIAL_HITS);
+  return { sessionId, configVersion, score, comboMax, hits, misses, spawned, specialHits, durationPlayedMs, grades, qualitySpawned, qualityHit, timingSamples, inputMethods, specialInputMethods };
 }
 
 function validateCountMap(value, keys) {
@@ -199,13 +206,13 @@ function validateCountMap(value, keys) {
   return Object.fromEntries(keys.map((key) => [key, safeInteger(value[key], 0, MAX_NOTES, null, key)]));
 }
 
-function validateInputMethods(value, expectedHits) {
+function validateInputMethods(value, expectedHits, maximumCount) {
   const allowed = ["mouse", "touch", "pen", "unknown"];
   const result = {};
   if (value && typeof value === "object" && !Array.isArray(value)) {
     for (const [key, count] of Object.entries(value)) {
       if (!allowed.includes(key)) continue;
-      result[key] = safeInteger(count, 0, MAX_NOTES, 0);
+      result[key] = safeInteger(count, 0, maximumCount, 0);
     }
   }
   if (Object.values(result).reduce((sum, count) => sum + count, 0) !== expectedHits) {

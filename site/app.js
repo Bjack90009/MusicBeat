@@ -17,6 +17,7 @@
     combo: document.querySelector("#combo"),
     maxCombo: document.querySelector("#max-combo"),
     hits: document.querySelector("#hits"),
+    specialHits: document.querySelector("#special-hits"),
     miss: document.querySelector("#miss-count"),
     leaderboard: document.querySelector("#leaderboard"),
     networkStatus: document.querySelector("#network-status"),
@@ -38,15 +39,15 @@
     phase: "idle",
     sessionId: null,
     startedAt: 0,
-    endsAt: 0,
     nextSpawnAt: 0,
     autoSpawnCount: 0,
-    totalSpawnCount: 0,
     perfectStreak: 0,
-    rewardTriggered: false,
-    bonusRemaining: 0,
-    nextBonusAt: 0,
-    bonusMode: false,
+    specialHits: 0,
+    specialInputMethods: {},
+    movingNote: null,
+    movingElement: null,
+    movingRng: null,
+    movingAnimationFrame: 0,
     noteSequence: 0,
     activeNotes: new Map(),
     animationFrame: 0,
@@ -147,12 +148,9 @@
     state.hits = 0;
     state.miss = 0;
     state.autoSpawnCount = 0;
-    state.totalSpawnCount = 0;
     state.perfectStreak = 0;
-    state.rewardTriggered = false;
-    state.bonusRemaining = 0;
-    state.nextBonusAt = 0;
-    state.bonusMode = false;
+    state.specialHits = 0;
+    state.specialInputMethods = {};
     state.noteSequence = 0;
     state.grades = Object.fromEntries(gradeIds.map((id) => [id, 0]));
     state.qualitySpawned = Object.fromEntries(config.qualities.map((q) => [q.id, 0]));
@@ -169,10 +167,10 @@
     els.combo.textContent = state.combo;
     els.maxCombo.textContent = state.maxCombo;
     els.hits.textContent = state.hits;
+    els.specialHits.textContent = state.specialHits;
     els.miss.textContent = state.miss;
-    els.perfectCombo.textContent = state.bonusMode ? "BONUS" : `PERFECT COMBO ×${state.perfectStreak}`;
-    els.perfectCombo.classList.toggle("bonus-mode", state.bonusMode);
-    els.perfectCombo.classList.toggle("active", !state.bonusMode && state.perfectStreak > 0);
+    els.perfectCombo.textContent = `PERFECT COMBO ×${state.perfectStreak}`;
+    els.perfectCombo.classList.toggle("active", state.perfectStreak > 0);
     gradeIds.forEach((id) => { document.querySelector(`#${id}-count`).textContent = state.grades[id]; });
   }
 
@@ -186,19 +184,19 @@
     return config.qualities[0];
   }
 
-  function spawnNote(now, origin = "auto") {
+  function spawnNote(now) {
     const position = rules.selectSafePosition(config, [...state.activeNotes.values()], state.rng);
     if (!position) return false;
     const quality = chooseQuality();
     const size = randomBetween(config.minOuterSize, config.maxOuterSize);
     const { x, y } = position;
     const id = `${state.sessionId}-${++state.noteSequence}`;
-    const note = { id, sequence: state.noteSequence, origin, bornAt: now, expiresAt: now + config.noteLifetimeMs, quality, size, x, y, resolved: false };
+    const note = { id, sequence: state.noteSequence, bornAt: now, expiresAt: now + config.noteLifetimeMs, quality, size, x, y, resolved: false };
     const button = document.createElement("button");
     button.type = "button";
-    button.className = `beat-note${origin === "bonus" ? " bonus-note" : ""}`;
+    button.className = "beat-note";
     button.dataset.noteId = id;
-    button.setAttribute("aria-label", `${origin === "bonus" ? "奖励" : ""}${quality.label}色品质第 ${note.sequence} 拍`);
+    button.setAttribute("aria-label", `${quality.label}色品质第 ${note.sequence} 拍`);
     button.style.cssText = [
       `left:${x / config.playAreaWidth * 100}%`,
       `top:${y / config.playAreaHeight * 100}%`,
@@ -208,12 +206,11 @@
       `--lifetime:${config.noteLifetimeMs}ms`,
       `--quality:${quality.color}`
     ].join(";");
-    button.innerHTML = `<span class="outer-ring"></span><span class="guide-ring"></span><span class="target-ring"><i class="note-core"></i></span><span class="note-label">${origin === "bonus" ? "奖 · " : ""}${quality.label} · ${note.sequence}</span>`;
+    button.innerHTML = `<span class="outer-ring"></span><span class="guide-ring"></span><span class="target-ring"><i class="note-core"></i></span><span class="note-label">${quality.label} · ${note.sequence}</span>`;
     button.addEventListener("pointerdown", (event) => handleHit(note, event));
     note.element = button;
     state.activeNotes.set(id, note);
-    if (origin === "auto") state.autoSpawnCount += 1;
-    state.totalSpawnCount += 1;
+    state.autoSpawnCount += 1;
     state.qualitySpawned[quality.id] += 1;
     els.playfield.prepend(button);
     return true;
@@ -241,9 +238,6 @@
     const pointerType = event.pointerType || "unknown";
     state.inputMethods[pointerType] = (state.inputMethods[pointerType] || 0) + 1;
     state.perfectStreak = rules.nextPerfectStreak(state.perfectStreak, tier.id);
-    if (rules.shouldTriggerBonus(state.perfectStreak, state.rewardTriggered, config.bonusTriggerCombo)) {
-      triggerBonus(now);
-    }
     renderStats();
     playTone(tier.id);
     showFeedback(note, tier, points, state.perfectStreak);
@@ -279,33 +273,61 @@
   function clearNotes() {
     for (const note of state.activeNotes.values()) note.element?.remove();
     state.activeNotes.clear();
-    els.playfield.querySelectorAll(".hit-feedback, .bonus-announcement").forEach((node) => node.remove());
+    els.playfield.querySelectorAll(".hit-feedback").forEach((node) => node.remove());
   }
 
-  function setBonusMode(active) {
-    if (state.bonusMode === active) return;
-    state.bonusMode = active;
+  function handleMovingHit(event) {
+    if (state.phase !== "playing") return;
+    event.preventDefault();
+    state.score += config.movingNoteScore;
+    state.specialHits += 1;
+    const pointerType = event.pointerType || "unknown";
+    state.specialInputMethods[pointerType] = (state.specialInputMethods[pointerType] || 0) + 1;
     renderStats();
-    if (active) {
-      els.perfectCombo.classList.remove("bonus-enter");
-      void els.perfectCombo.offsetWidth;
-      els.perfectCombo.classList.add("bonus-enter");
-    } else {
-      els.perfectCombo.classList.remove("bonus-enter");
-    }
+    playTone("special");
+    state.movingElement.classList.remove("is-hit");
+    void state.movingElement.offsetWidth;
+    state.movingElement.classList.add("is-hit");
+    window.setTimeout(() => state.movingElement?.classList.remove("is-hit"), 180);
+    showMovingFeedback();
   }
 
-  function triggerBonus(now) {
-    state.rewardTriggered = true;
-    state.bonusRemaining = config.bonusNoteCount;
-    state.nextBonusAt = now;
-    state.endsAt = Math.max(state.endsAt, now + rules.bonusWindowMs(config.bonusNoteCount, config.bonusSpawnIntervalMs, config.noteLifetimeMs));
-    setBonusMode(true);
-    const announcement = document.createElement("div");
-    announcement.className = "bonus-announcement";
-    announcement.innerHTML = "<small>PERFECT ×5</small><strong>BONUS START</strong>";
-    els.playfield.append(announcement);
-    setTimeout(() => announcement.remove(), 900);
+  function showMovingFeedback() {
+    const feedback = document.createElement("div");
+    feedback.className = "hit-feedback moving-feedback";
+    feedback.style.cssText = `left:${state.movingNote.x / config.playAreaWidth * 100}%;top:${state.movingNote.y / config.playAreaHeight * 100}%;--grade:#ffffff`;
+    feedback.innerHTML = `<strong>SPECIAL</strong><small>+${formatScore.format(config.movingNoteScore)}</small>`;
+    els.playfield.append(feedback);
+    window.setTimeout(() => feedback.remove(), 720);
+  }
+
+  function renderMovingNote() {
+    if (!state.movingNote || !state.movingElement) return;
+    state.movingElement.style.left = `${state.movingNote.x / config.playAreaWidth * 100}%`;
+    state.movingElement.style.top = `${state.movingNote.y / config.playAreaHeight * 100}%`;
+  }
+
+  function moveSpecialNote(now) {
+    state.movingNote = rules.advanceMovingNote(state.movingNote, now, config, state.movingRng);
+    renderMovingNote();
+    state.movingAnimationFrame = requestAnimationFrame(moveSpecialNote);
+  }
+
+  function createMovingNote() {
+    const now = performance.now();
+    state.movingRng = seededRandom((config.seed ^ 0x51f15e) >>> 0);
+    state.movingNote = rules.createMovingNoteState(config, state.movingRng, now);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "moving-note";
+    button.setAttribute("aria-label", `移动白色特殊节拍，每次命中增加 ${config.movingNoteScore} 分`);
+    button.style.setProperty("--moving-size", `${config.movingNoteSize / config.playAreaWidth * 100}%`);
+    button.innerHTML = '<span class="moving-ring"><i></i></span><small>SPECIAL</small>';
+    button.addEventListener("pointerdown", handleMovingHit);
+    state.movingElement = button;
+    els.playfield.append(button);
+    renderMovingNote();
+    state.movingAnimationFrame = requestAnimationFrame(moveSpecialNote);
   }
 
   let audioContext;
@@ -315,7 +337,7 @@
       const now = audioContext.currentTime;
       const oscillator = audioContext.createOscillator();
       const gain = audioContext.createGain();
-      const tones = { perfect: [880, "sine"], great: [660, "triangle"], good: [500, "triangle"], early: [350, "square"] };
+      const tones = { perfect: [880, "sine"], great: [660, "triangle"], good: [500, "triangle"], early: [350, "square"], special: [1046, "sine"] };
       const [frequency, type] = tones[grade] || [180, "sawtooth"];
       oscillator.frequency.setValueAtTime(frequency, now);
       oscillator.frequency.exponentialRampToValueAtTime(frequency * 1.15, now + .08);
@@ -332,32 +354,22 @@
   function tick(now) {
     if (state.phase !== "playing") return;
     const elapsed = now - state.startedAt;
-    const remaining = Math.max(0, state.endsAt - now);
+    const remaining = Math.max(0, config.durationMs - elapsed);
     els.timer.textContent = (remaining / 1000).toFixed(2);
 
     for (const note of [...state.activeNotes.values()]) {
       if (now >= note.expiresAt) registerMiss(note);
     }
 
-    if (state.bonusRemaining > 0 && now >= state.nextBonusAt) {
-      if (spawnNote(now, "bonus")) {
-        state.bonusRemaining -= 1;
-        state.nextBonusAt = now + config.bonusSpawnIntervalMs;
-        if (state.bonusRemaining === 0) setBonusMode(false);
-      } else {
-        state.nextBonusAt = now + 16;
-      }
-    }
-
     while (now >= state.nextSpawnAt && state.autoSpawnCount < config.maxNotes && elapsed < config.durationMs) {
-      if (!spawnNote(now, "auto")) {
+      if (!spawnNote(now)) {
         state.nextSpawnAt = now + 50;
         break;
       }
       state.nextSpawnAt += randomBetween(config.minSpawnIntervalMs, config.maxSpawnIntervalMs);
     }
 
-    if (remaining <= 0 && state.bonusRemaining === 0) {
+    if (remaining <= 0) {
       finishGame();
       return;
     }
@@ -372,7 +384,6 @@
     state.sessionId = createId();
     state.rng = seededRandom((config.seed ^ Date.now()) >>> 0);
     state.startedAt = performance.now();
-    state.endsAt = state.startedAt + config.durationMs;
     state.nextSpawnAt = state.startedAt;
     els.timer.textContent = (config.durationMs / 1000).toFixed(2);
     els.fieldMessage.hidden = true;
@@ -394,12 +405,14 @@
       comboMax: state.maxCombo,
       hits: state.hits,
       misses: state.miss,
-      spawned: state.totalSpawnCount,
+      spawned: state.autoSpawnCount,
+      specialHits: state.specialHits,
       grades: state.grades,
       qualitySpawned: state.qualitySpawned,
       qualityHit: state.qualityHit,
       timingSamples: state.timingSamples,
       inputMethods: state.inputMethods,
+      specialInputMethods: state.specialInputMethods,
       durationPlayedMs
     };
   }
@@ -514,8 +527,12 @@
   els.declineRank.addEventListener("click", declineRank);
   els.nameInput.addEventListener("keydown", (event) => { if (event.key === "Enter") submitName(); });
   addEventListener("online", () => { flushQueue().then(loadLeaderboard); });
-  addEventListener("beforeunload", () => cancelAnimationFrame(state.animationFrame));
+  addEventListener("beforeunload", () => {
+    cancelAnimationFrame(state.animationFrame);
+    cancelAnimationFrame(state.movingAnimationFrame);
+  });
 
+  createMovingNote();
   renderStats();
   loadLeaderboard();
   flushQueue();

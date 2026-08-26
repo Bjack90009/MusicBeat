@@ -1,0 +1,2 @@
+ALTER TABLE runs ADD COLUMN special_hits INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE runs ADD COLUMN special_input_methods_json TEXT NOT NULL DEFAULT '{}';

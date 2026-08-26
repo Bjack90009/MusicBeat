@@ -39,28 +39,48 @@ test("safe selection rejects occupied maximum-circle areas", () => {
   assert.equal(rules.selectSafePosition(config, active, () => .5), null);
 });
 
-test("five bonus notes at 200ms remain sequential and fit with expiry first", () => {
-  const spawnTimes = [0, 200, 400, 600, 800];
-  const active = [];
-  let maximumActive = 0;
-  for (const now of spawnTimes) {
-    for (let index = active.length - 1; index >= 0; index -= 1) {
-      if (active[index].expiresAt <= now) active.splice(index, 1);
-    }
-    const position = rules.selectSafePosition(config, active, () => .5);
-    assert.ok(position);
-    active.push({ ...position, expiresAt: now + 800 });
-    maximumActive = Math.max(maximumActive, active.length);
-  }
-  assert.equal(maximumActive, 4);
-  assert.equal(rules.bonusWindowMs(5, 200, 800), 1600);
-});
-
-test("perfect streak increments, resets, and triggers the reward only once", () => {
+test("perfect streak increments and resets without a reward trigger", () => {
   let streak = 0;
   for (let count = 0; count < 5; count += 1) streak = rules.nextPerfectStreak(streak, "perfect");
   assert.equal(streak, 5);
-  assert.equal(rules.shouldTriggerBonus(streak, false, 5), true);
-  assert.equal(rules.shouldTriggerBonus(streak, true, 5), false);
   assert.equal(rules.nextPerfectStreak(streak, "great"), 0);
+});
+
+const movingConfig = {
+  ...config,
+  movingNoteSize: 72,
+  movingNoteMinSpeed: 90,
+  movingNoteMaxSpeed: 180,
+  movingNoteAcceleration: 120,
+  movingNoteMinDirectionIntervalMs: 350,
+  movingNoteMaxDirectionIntervalMs: 900,
+  movingNoteMaxTurnDegrees: 90
+};
+
+test("moving note is created fully inside the play area", () => {
+  const state = rules.createMovingNoteState(movingConfig, () => .5, 1000);
+  assert.ok(state.x >= 36 && state.x <= 464);
+  assert.ok(state.y >= 36 && state.y <= 464);
+  assert.ok(state.speed >= 90 && state.speed <= 180);
+  assert.ok(state.nextBehaviorAt >= 1350 && state.nextBehaviorAt <= 1900);
+});
+
+test("moving note accelerates toward its target speed", () => {
+  const state = {
+    x: 250, y: 250, angle: 0, speed: 90, targetSpeed: 180,
+    nextBehaviorAt: 10000, lastUpdatedAt: 0
+  };
+  const next = rules.advanceMovingNote(state, 50, movingConfig, () => .5);
+  assert.equal(next.speed, 96);
+  assert.ok(next.x > state.x);
+});
+
+test("moving note reflects from the play-area edge", () => {
+  const state = {
+    x: 463, y: 250, angle: 0, speed: 180, targetSpeed: 180,
+    nextBehaviorAt: 10000, lastUpdatedAt: 0
+  };
+  const next = rules.advanceMovingNote(state, 50, movingConfig, () => .5);
+  assert.equal(next.x, 464);
+  assert.ok(Math.abs(next.angle - Math.PI) < 1e-9);
 });

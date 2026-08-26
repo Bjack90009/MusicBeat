@@ -59,8 +59,6 @@ button { touch-action: manipulation; }
 .timer-wrap span { color: #78a9b6; font-size: 11px; }
 .perfect-combo-display { min-height: 17px; margin-top: 3px; color: #7f9aa7; font: 800 11px/1 ui-monospace, monospace; letter-spacing: .14em; text-shadow: 0 0 12px transparent; transition: color .16s ease, text-shadow .16s ease; }
 .perfect-combo-display.active { color: #ffe16b; text-shadow: 0 0 14px rgba(255, 213, 74, .46); }
-.perfect-combo-display.bonus-mode { color: #fff38b; font-size: 15px; letter-spacing: .32em; text-shadow: 0 0 7px #ffb800, 0 0 18px rgba(255, 197, 54, .9); }
-.perfect-combo-display.bonus-enter { animation: bonus-counter-enter .72s cubic-bezier(.2, .85, .3, 1); }
 .playfield { position: relative; width: min(100%, 620px); aspect-ratio: 1; overflow: hidden; border: 1px solid rgba(85, 231, 255, .4); border-radius: 7px; background: radial-gradient(circle, rgba(10, 49, 61, .52), rgba(2, 9, 15, .94) 69%); box-shadow: 0 0 0 4px rgba(85, 231, 255, .025), 0 0 44px rgba(41, 180, 206, .12), inset 0 0 70px rgba(0, 0, 0, .48); isolation: isolate; }
 .playfield::before, .playfield::after { content: ""; position: absolute; pointer-events: none; z-index: -1; }
 .playfield::before { inset: 0; background: linear-gradient(rgba(62, 198, 220, .075) 1px, transparent 1px), linear-gradient(90deg, rgba(62, 198, 220, .075) 1px, transparent 1px); background-size: 10% 10%; }
@@ -70,7 +68,7 @@ button { touch-action: manipulation; }
 .field-message strong { color: #ddfaff; font-size: clamp(18px, 3vw, 28px); letter-spacing: .09em; }
 .field-message span { color: var(--muted); font-size: 11px; }
 
-.beat-note { --quality: var(--cyan); position: absolute; width: var(--size); height: var(--size); padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; transform: translate(-50%, -50%); color: var(--quality); }
+.beat-note { --quality: var(--cyan); position: absolute; z-index: 10; width: var(--size); height: var(--size); padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; transform: translate(-50%, -50%); color: var(--quality); }
 .beat-note::before { content: ""; position: absolute; inset: -5%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--quality), transparent 80%), transparent 67%); animation: aura .42s ease-in-out infinite alternate; }
 .outer-ring { position: absolute; inset: 0; border: max(1px, .7vw) solid var(--quality); border-width: clamp(2px, .45vw, 4px); border-radius: 50%; box-shadow: 0 0 15px color-mix(in srgb, var(--quality), transparent 35%), inset 0 0 12px color-mix(in srgb, var(--quality), transparent 67%); animation: shrink var(--lifetime) linear forwards; }
 .guide-ring { position: absolute; width: var(--target); height: var(--target); left: 50%; top: 50%; transform: translate(-50%, -50%); border: 1px solid color-mix(in srgb, var(--quality), white 20%); border-radius: 50%; opacity: .5; }
@@ -78,16 +76,16 @@ button { touch-action: manipulation; }
 .note-core { width: 18%; aspect-ratio: 1; border-radius: 50%; background: white; box-shadow: 0 0 6px white, 0 0 18px var(--quality); }
 .note-label { position: absolute; inset: 0; display: grid; place-content: center; padding-top: 40%; color: white; font: 800 clamp(8px, 1.3vw, 12px) ui-monospace, monospace; text-shadow: 0 2px 6px #000; pointer-events: none; }
 .beat-note.hit { pointer-events: none; animation: note-hit .2s ease-out forwards; }
-.bonus-note::before { box-shadow: 0 0 0 2px rgba(255, 229, 105, .68), 0 0 25px rgba(255, 194, 48, .72); animation: bonus-note-enter .26s ease-out, aura .42s .26s ease-in-out infinite alternate; }
+.moving-note { position: absolute; z-index: 5; width: var(--moving-size); height: var(--moving-size); padding: 0; border: 0; border-radius: 50%; background: none; color: white; cursor: pointer; transform: translate(-50%, -50%); touch-action: manipulation; }
+.moving-ring { position: absolute; inset: 0; display: grid; place-items: center; border: clamp(2px, .45vw, 4px) solid white; border-radius: 50%; background: rgba(255, 255, 255, .06); box-shadow: 0 0 9px rgba(255,255,255,.95), 0 0 25px rgba(191,229,255,.42), inset 0 0 16px rgba(255,255,255,.18); animation: moving-glow .55s ease-in-out infinite alternate; }
+.moving-ring i { width: 18%; aspect-ratio: 1; border-radius: 50%; background: white; box-shadow: 0 0 7px white, 0 0 16px #bde9ff; }
+.moving-note small { position: absolute; left: 50%; top: calc(100% + 5px); transform: translateX(-50%); color: white; font: 800 clamp(7px, 1vw, 10px)/1 ui-monospace, monospace; letter-spacing: .08em; text-shadow: 0 1px 4px #000, 0 0 8px #9bddff; pointer-events: none; }
+.moving-note.is-hit { animation: moving-hit .18s ease-out; }
 .hit-feedback { position: absolute; transform: translate(-50%, -50%); z-index: 300; pointer-events: none; text-align: center; animation: feedback .68s ease-out forwards; }
 .hit-feedback strong { display: block; color: var(--grade); font: 900 clamp(14px, 2.4vw, 24px) ui-monospace, monospace; letter-spacing: .06em; text-shadow: 0 0 12px var(--grade), 0 2px 4px #000; }
 .hit-feedback small { color: white; font: 700 10px ui-monospace, monospace; text-shadow: 0 2px 3px #000; }
 .hit-feedback em { display: block; margin-top: 2px; color: #ffe16b; font: 900 11px/1 ui-monospace, monospace; font-style: normal; letter-spacing: .08em; text-shadow: 0 0 9px rgba(255, 209, 62, .82), 0 2px 3px #000; }
-.bonus-announcement { position: absolute; inset: 0; z-index: 280; display: grid; place-content: center; pointer-events: none; text-align: center; animation: bonus-announcement .9s ease-out forwards; }
-.bonus-announcement::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle, rgba(255, 213, 75, .2), transparent 48%); }
-.bonus-announcement small, .bonus-announcement strong { position: relative; display: block; }
-.bonus-announcement small { color: #fff0a5; font: 800 11px ui-monospace, monospace; letter-spacing: .24em; }
-.bonus-announcement strong { margin-top: 5px; color: white; font: 900 clamp(24px, 5vw, 48px)/1 ui-monospace, monospace; letter-spacing: .12em; text-shadow: 0 0 10px #ffcb38, 0 0 30px #ff9d00; }
+.moving-feedback strong { color: white; text-shadow: 0 0 12px white, 0 2px 4px #000; }
 
 .primary-button { min-width: 210px; min-height: 48px; margin-top: 15px; padding: 0 28px; border: 1px solid #7cf1ff; border-radius: 4px; background: linear-gradient(180deg, #22b8d2, #0a7899); color: white; font-weight: 800; letter-spacing: .12em; cursor: pointer; box-shadow: 0 0 22px rgba(85, 231, 255, .2), inset 0 1px rgba(255,255,255,.34); }
 .primary-button:hover { filter: brightness(1.12); }
@@ -128,9 +126,8 @@ button { touch-action: manipulation; }
 @keyframes aura { to { transform: scale(1.05); opacity: .72; } }
 @keyframes note-hit { to { transform: translate(-50%, -50%) scale(1.35); opacity: 0; } }
 @keyframes feedback { 0% { opacity: 0; transform: translate(-50%, -35%) scale(.72); } 20% { opacity: 1; transform: translate(-50%, -55%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -115%) scale(1.06); } }
-@keyframes bonus-counter-enter { 0% { opacity: 0; transform: scale(.4); filter: blur(5px); } 45% { opacity: 1; transform: scale(1.35); filter: blur(0); } 100% { transform: scale(1); } }
-@keyframes bonus-note-enter { from { opacity: 0; transform: scale(.45); } to { opacity: 1; transform: scale(1); } }
-@keyframes bonus-announcement { 0% { opacity: 0; transform: scale(.68); } 18% { opacity: 1; transform: scale(1.08); } 58% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.18); } }
+@keyframes moving-glow { to { opacity: .72; box-shadow: 0 0 13px white, 0 0 32px rgba(191,229,255,.55), inset 0 0 19px rgba(255,255,255,.28); } }
+@keyframes moving-hit { 50% { transform: translate(-50%, -50%) scale(1.22); filter: brightness(1.7); } }
 
 @media (max-width: 960px) {
   .game-layout { grid-template-columns: minmax(170px, 210px) minmax(340px, 560px); }
@@ -164,5 +161,5 @@ button { touch-action: manipulation; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .beat-note::before, .outer-ring, .beat-note.hit, .hit-feedback, .perfect-combo-display, .bonus-announcement { animation-duration: .001ms; }
+  .beat-note::before, .outer-ring, .beat-note.hit, .hit-feedback, .perfect-combo-display, .moving-ring, .moving-note { animation-duration: .001ms; }
 }
